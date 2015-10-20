@@ -89,7 +89,7 @@ function onMouseLeave () {
 
 function wavePoint (x, line, pre) {
   var l = line + Math.sin(line);
-  return 0.7 * Math.pow(
+  return 0.5 * Math.pow(
     Math.sin(
       ( x + l + (pre * sqwidth/2) ) / 3
     ), 2
