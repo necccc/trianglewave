@@ -1,7 +1,11 @@
+
+var waveSpeed = 1.8;
+var dripSpeed = 1.4;
+
 var sqwidth,
 largeSide,
 halfLargeSide,
-unitSize,
+unitSize, drip = [],
 raster, mesh = [], restizeTime;
 
 var loaded = false;
@@ -14,6 +18,7 @@ function init () {
   halfLargeSide = largeSide / 2;
   unitSize = new Size(sqwidth, sqwidth);
   raster = new Raster(getImg());
+  drip = [];
 
   raster.on('load', function() {
 
@@ -29,7 +34,6 @@ function init () {
     var line = 0;
     var end = false;
 
-
     while(next) {
       var res = generateSquare(next, line, mesh);
       var pre = (line % 4 == 0) ? 1 : -1;
@@ -42,41 +46,28 @@ function init () {
         line += 2;
 
       } else if (res[0] > view.size.width) {
-
         if (end) {
           next = false;
           break;
         }
-
         res[0] = startX + (pre * halfLargeSide/2);
         res[1] = next[1] + halfLargeSide;
         line += 2;
-
       } else {
-
         res[0] = next[0] + largeSide;
         res[1] = next[1]
-
       }
-
       next = res;
     }
-
-    view.onFrame = function (e) {
-      mesh.map(function (tri) {
-          tri.JSCwaveProp[0] += e.delta*1.4
-          tri.opacity = wavePoint.apply(null, tri.JSCwaveProp)
-      })
-    }
-
+    view.onFrame = onFrame;
   });
 }
 
-function wavePoint (x, line, pre) {
+function wavePoint (point, line, pre) {
   var l = line + Math.sin(line);
   return 0.5 * Math.pow(
     Math.sin(
-      ( x + l + (pre * sqwidth/2) ) / 3
+      ( point.x + l + (pre * sqwidth/2) ) / 3
     ), 2
   ) + 0.2
 }
@@ -100,8 +91,11 @@ function generateSquare (coords, line, mesh) {
   triangle1.rotate(45);
   triangle1.blendMode = 'screen'
 
-  triangle1.opacity = wavePoint(x, line, 1)
-  triangle1.JSCwaveProp = [x, line, 1]
+  triangle1.opacity = wavePoint(center, line, 1)
+  triangle1.JSCwaveProp = [center, line, 1]
+  triangle1.passive = true;
+
+  triangle1.on('mousedown', onMouseDown)
 
   mesh.push(triangle1)
 
@@ -110,8 +104,11 @@ function generateSquare (coords, line, mesh) {
   triangle2.removeSegment(rand[1]); // 2
   triangle2.rotate(45);
   triangle2.blendMode = 'screen'
-  triangle2.opacity = wavePoint(x, line+1, -1)
-  triangle2.JSCwaveProp = [x, line+1, -1]
+  triangle2.opacity = wavePoint(center, line+1, -1)
+  triangle2.JSCwaveProp = [center, line+1, -1]
+  triangle2.passive = true;
+
+  triangle2.on('mousedown', onMouseDown)
 
   mesh.push(triangle2)
 
@@ -140,7 +137,12 @@ function getImg () {
 }
 
 function getSqSize () {
-  return 64;
+  var width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+  if (width > 900) {
+    return 64;
+  } else  {
+    return 28;
+  }
 }
 
 function remove (item) {
@@ -159,24 +161,51 @@ function reset () {
 
 function setSize () {
   var width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
-  var c = document.getElementById('Trianglewave');
-  c.style.width = width+'px';
-  view.viewSize.width = width;
+  var c = document.getElementById('Trianglewave').parentNode;
+  view.viewSize.width = c.clientWidth;
+  view.viewSize.height = c.clientHeight;
 }
 
+function onMouseDown () {
+  var that = this;
+  this.passive = false;
+  this.opacity = 1;
+  //var prop = this.JSCwaveProp;
+}
+
+function withinRadius (currentPoint, centerPoint, outerRadius, innerRadius) {
+  var coords = (Math.pow((currentPoint.x - centerPoint.x),2) + Math.pow((currentPoint.y - centerPoint.y),2)),
+      insideOuter = coords < Math.pow(outerRadius,2),
+      outsideInner = coords > Math.pow(innerRadius,2);
+  return insideOuter && outsideInner;
+}
+
+function onFrame (e) {
+  mesh.map(function (tri, i) {
+    if (tri.passive) {
+      tri.JSCwaveProp[0] += e.delta * waveSpeed
+      tri.opacity = wavePoint.apply(null, tri.JSCwaveProp);
+    } else {
+      tri.opacity -= .01
+
+      if (tri.opacity <= mesh[i-1].opacity) {
+        tri.opacity = mesh[i-1].opacity;
+        tri.passive = true;
+      }
+    }
+  });
+}
 
 function resize () {
-  
   reset();
   setSize();
   init();
 }
 
-
 window.addEventListener('resize', function () {
   clearTimeout(restizeTime);
   restizeTime = setTimeout(resize, 400)
+});
 
-})
-
-init()
+setSize();
+init();
