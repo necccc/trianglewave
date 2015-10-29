@@ -95,7 +95,7 @@ function generateSquare (coords, line, mesh) {
   triangle1.JSCwaveProp = [center, line, 1]
   triangle1.passive = true;
 
-  triangle1.on('mousedown', onMouseDown)
+  triangle1.on('mouseenter', onMouseEnter)
 
   mesh.push(triangle1)
 
@@ -108,7 +108,7 @@ function generateSquare (coords, line, mesh) {
   triangle2.JSCwaveProp = [center, line+1, -1]
   triangle2.passive = true;
 
-  triangle2.on('mousedown', onMouseDown)
+  triangle2.on('mouseenter', onMouseEnter)
 
   mesh.push(triangle2)
 
@@ -166,7 +166,7 @@ function setSize () {
   view.viewSize.height = c.clientHeight;
 }
 
-function onMouseDown () {
+function onMouseEnter () {
   var that = this;
   this.passive = false;
   this.opacity = 1;
@@ -186,7 +186,7 @@ function onFrame (e) {
       tri.JSCwaveProp[0] += e.delta * waveSpeed
       tri.opacity = wavePoint.apply(null, tri.JSCwaveProp);
     } else {
-      tri.opacity -= .01
+      tri.opacity -= .005
 
       if (tri.opacity <= mesh[i-1].opacity) {
         tri.opacity = mesh[i-1].opacity;
